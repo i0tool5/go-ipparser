@@ -1,4 +1,4 @@
-package ipparser //ipv4parser
+package goipaddress
 
 import (
 	"log"
@@ -8,14 +8,17 @@ import (
 	"strings"
 )
 
+/*IPv4Range contains the range of IP addresses*/
+type IPv4Range []string
+
 /*IPv4Addr its a full IPv4 addres representation*/
 type IPv4Addr struct {
 	AddrIP net.IP
 	IntIP  int64
 }
 
-// IPtoInt convert IPv4 addres to its integer representation
-func IPtoInt(ipAddr string) int64 {
+// ToInt convert IPv4 addres to its integer representation
+func ToInt(ipAddr string) int64 {
 	strIP := ipAddr
 	binIP := ""
 	chunks := strings.Split(strIP, ".")
@@ -66,12 +69,7 @@ func (ipAddr *IPv4Addr) IPv4create(ip string) {
 		}
 		return true
 	}() {
-		x := make([]byte, 4)
-		for pos := range splited {
-			val, _ := strconv.Atoi(splited[pos])
-			x[pos] = byte(val)
-		}
-		ipAddr.AddrIP = net.IPv4(x[0], x[1], x[2], x[3])
-		ipAddr.IntIP = IPtoInt(ip)
+		ipAddr.AddrIP = net.ParseIP(ip)
+		ipAddr.IntIP = ToInt(ip)
 	}
 }

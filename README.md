@@ -1,3 +1,3 @@
-# go-ipparser
-Golang module for parsing IPv4 
+# goipaddress
+Golang module for IPv4 processing 
 Work in progress :)
