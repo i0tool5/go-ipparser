@@ -22,7 +22,7 @@ type IPv4Network struct {
 	IPrange IPv4Range
 }
 
-// ToInt convert IPv4 addres to its integer representation
+// ToInt convert IPv4 address to its integer representation
 func ToInt(ipAddr string) int64 {
 	strIP := ipAddr
 	binIP := ""
@@ -58,18 +58,18 @@ func FromInt(ipInt int64) string {
 func IPv4create(ipAddr string) IPv4Addr {
 	var ip IPv4Addr
 	if isValid(ipAddr) {
-		ip.AddrIP = net.ParseIP(ipAddr)
-		ip.IntIP = ToInt(ipAddr)
+		return IPv4Addr{net.ParseIP(ipAddr), ToInt(ipAddr)}
 	}
 	return ip
 }
 
-/*IPv4NetworkCreate creates new IPv4Network instance*/
+/*IPv4NetworkCreate creates new IPv4Network instance
+This function isn't complete at all, so it can handle
+IPs like 192.*.1.* only*/
 func IPv4NetworkCreate(ipAddr string) IPv4Network {
-	var rang IPv4Network
-	rang.AddrIP = ipAddr
-	rang.IPrange = parseAster(ipAddr)
-	return rang
+	var IPstorage []string
+	parseAster(ipAddr, &IPstorage)
+	return IPv4Network{ipAddr, IPstorage}
 }
 
 func isValid(ip string) bool {
@@ -91,19 +91,21 @@ func isValid(ip string) bool {
 	return true
 }
 
-func parseAster(ipAddr string) IPv4Range {
-	var retRange IPv4Range
-	for i := 1; i < 255; i++ {
-		//var temp []string
-		si := strconv.Itoa(i)
-		repl := strings.Replace(ipAddr, "*", si, 1)
-		retRange = append(retRange, repl)
+func parseAster(ipAddr string, storage *[]string) {
+	if strings.Count(ipAddr, "*") > 1 {
+		for i := 0; i <= 255; i++ {
+			repl := strings.Replace(ipAddr, "*", strconv.Itoa(i), 1)
+			parseAster(repl, storage)
+		}
+	} else {
+		for i := 0; i <= 255; i++ {
+			*storage = append(*storage, strings.Replace(ipAddr, "*", strconv.Itoa(i), 1))
+		}
 	}
-	return retRange
 }
 
 /*
-func parseHyphen(ipAddr string) IPv4Range {
-
+# TODO: parseHyphen function should parse IP like 192.1-15.1.21
+func parseHyphen(ipAddr string) {
 }
 */
