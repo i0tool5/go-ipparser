@@ -55,8 +55,8 @@ func FromInt(ipInt int64) string {
 	return convertedIP[0 : len(convertedIP)-1]
 }
 
-// IPv4create fills fields of IPv4Addr struct with appropriate values
-func IPv4create(ipAddr string) IPv4Addr {
+// IPv4Create fills fields of IPv4Addr struct with appropriate values
+func IPv4Create(ipAddr string) IPv4Addr {
 	var ip IPv4Addr
 	if isValid(ipAddr) {
 		return IPv4Addr{net.ParseIP(ipAddr), ToInt(ipAddr)}
@@ -64,19 +64,20 @@ func IPv4create(ipAddr string) IPv4Addr {
 	return ip
 }
 
-/*IPv4NetworkCreate creates new IPv4Network instance
-This function isn't complete at all, so it can handle
-IPs like 192.*.1.* only*/
+/*
+IPv4NetworkCreate creates new IPv4Network instance
+This function can handle IPs like:
+192.*.1.*, 192.1-23.1.8-10, 192.1-23.*.8 and CIDR notation,
+*/
 func IPv4NetworkCreate(ipAddr string) IPv4Network {
-	var IPstorage []string
-	parseAster(ipAddr, &IPstorage)
-	return IPv4Network{ipAddr, IPstorage}
+	return IPv4Network{ipAddr, parseAddr(ipAddr)}
 }
 
-func isValid(ip string) bool {
-	splited := strings.Split(ip, ".")
+//Check ipAddr is a standard IP addr like 192.168.1.1
+func isValid(ipAddr string) bool {
+	splited := strings.Split(ipAddr, ".")
 	re, _ := regexp.Compile(`(\d){1,3}\.(\d){1,3}\.(\d){1,3}\.(\d){1,3}`)
-	if re.Match([]byte(ip)) {
+	if re.Match([]byte(ipAddr)) {
 		for _, val := range splited {
 			ival, err := strconv.Atoi(val)
 			if err != nil {
@@ -122,4 +123,44 @@ func parseHyphen(ipAddr string, storage *[]string) {
 			*storage = append(*storage, strings.Replace(repl, "@", strconv.Itoa(beg), 1))
 		}
 	}
+}
+
+func parseCIDR(ipAddr string, storage *[]string) {
+	inc := func(s net.IP) {
+		for j := len(s) - 1; j >= 0; j-- {
+			s[j]++
+			if s[j] > 0 {
+				break
+			}
+		}
+	}
+	ip, network, _ := net.ParseCIDR(ipAddr)
+	for e := ip.Mask(network.Mask); network.Contains(e); inc(e) {
+		*storage = append(*storage, e.String())
+	}
+}
+
+func parseAddr(ipAddr string) []string {
+	var aStore []string
+	var bStore []string
+	ast := strings.Contains(ipAddr, "*")
+	hyp := strings.Contains(ipAddr, "-")
+	cidr := strings.Contains(ipAddr, "/")
+	switch {
+	case ast && hyp:
+		parseHyphen(ipAddr, &aStore)
+		for _, elem := range aStore {
+			parseAster(elem, &bStore)
+		}
+		return bStore
+	case ast:
+		parseAster(ipAddr, &aStore)
+		return aStore
+	case hyp:
+		parseHyphen(ipAddr, &aStore)
+		return aStore
+	case cidr:
+		parseCIDR(ipAddr, &aStore)
+	}
+	return aStore
 }
