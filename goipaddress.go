@@ -1,6 +1,7 @@
 package goipaddress
 
 import (
+	"fmt"
 	"net"
 	"regexp"
 	"strconv"
@@ -104,8 +105,21 @@ func parseAster(ipAddr string, storage *[]string) {
 	}
 }
 
-/*
-# TODO: parseHyphen function should parse IP like 192.1-15.1.21
-func parseHyphen(ipAddr string) {
+func parseHyphen(ipAddr string, storage *[]string) {
+	reg, _ := regexp.Compile(`(\d*)-(\d*)`)
+	IPrange := fmt.Sprintf("%s", reg.Find([]byte(ipAddr)))
+	repl := strings.Replace(ipAddr, IPrange, "@", -1)
+	s := strings.Split(IPrange, "-")
+	beg, _ := strconv.Atoi(s[0])
+	end, _ := strconv.Atoi(s[1])
+	if strings.Count(ipAddr, "-") > 1 {
+		for ; beg <= end; beg++ {
+			repl2 := strings.Replace(repl, "@", strconv.Itoa(beg), 1)
+			parseHyphen(repl2, storage)
+		}
+	} else {
+		for ; beg <= end; beg++ {
+			*storage = append(*storage, strings.Replace(repl, "@", strconv.Itoa(beg), 1))
+		}
+	}
 }
-*/
