@@ -1,12 +1,15 @@
 package goipaddress
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+var errInvalidIP = errors.New("invalid IP address given")
 
 /*IPv4Range contains the range of IP addresses*/
 type IPv4Range []string
@@ -56,12 +59,12 @@ func FromInt(ipInt int64) string {
 }
 
 // IPv4Create fills fields of IPv4Addr struct with appropriate values
-func IPv4Create(ipAddr string) IPv4Addr {
+func IPv4Create(ipAddr string) (IPv4Addr, error) {
 	var ip IPv4Addr
 	if isValid(ipAddr) {
-		return IPv4Addr{net.ParseIP(ipAddr), ToInt(ipAddr)}
+		return IPv4Addr{net.ParseIP(ipAddr), ToInt(ipAddr)}, nil
 	}
-	return ip
+	return ip, errInvalidIP
 }
 
 /*
@@ -69,26 +72,43 @@ IPv4NetworkCreate creates new IPv4Network instance
 This function can handle IPs like:
 192.*.1.*, 192.1-23.1.8-10, 192.1-23.*.8 and CIDR notation,
 */
-func IPv4NetworkCreate(ipAddr string) IPv4Network {
-	return IPv4Network{ipAddr, parseAddr(ipAddr)}
+func IPv4NetworkCreate(ipAddr string) (IPv4Network, error) {
+	if isValid(ipAddr) {
+		return IPv4Network{ipAddr, parseAddr(ipAddr)}, nil
+	}
+	return IPv4Network{}, errInvalidIP
 }
 
 //Check ipAddr is a standard IP addr like 192.168.1.1
-func isValid(ipAddr string) bool {
-	splited := strings.Split(ipAddr, ".")
-	re, _ := regexp.Compile(`(\d){1,3}\.(\d){1,3}\.(\d){1,3}\.(\d){1,3}`)
-	if re.Match([]byte(ipAddr)) {
-		for _, val := range splited {
-			ival, err := strconv.Atoi(val)
-			if err != nil {
-				return false
-			}
-			if ival > 255 || ival < 0 {
-				return false
-			}
+func isValid(ipAddr string) bool { //TODO: validate CIDR
+	if !strings.Contains(ipAddr, "-") && !strings.Contains(ipAddr, "*") && !strings.Contains(ipAddr, "/") {
+		re, _ := regexp.Compile(`^(\d){1,3}\.(\d){1,3}\.(\d){1,3}\.(\d){1,3}$`) //default ip regexp
+		if !re.Match([]byte(ipAddr)) {
+			return false
 		}
-	} else {
-		return false
+	}
+	if strings.Contains(ipAddr, "/") {
+		cidr := strings.Split(ipAddr, "/")[1]
+		cval, err := strconv.Atoi(cidr)
+		if err != nil {
+			return false
+		}
+		if cval < 1 || cval > 32 {
+			return false
+		}
+	}
+	for _, delim := range []string{"-", "*"} {
+		ipAddr = strings.Replace(ipAddr, delim, ".", -1)
+	}
+	splited := strings.Split(ipAddr, ".")
+	for _, val := range splited {
+		ival, err := strconv.Atoi(val)
+		if err != nil {
+			continue
+		}
+		if ival > 255 || ival < 0 {
+			return false
+		}
 	}
 	return true
 }
