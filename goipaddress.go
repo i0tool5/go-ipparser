@@ -80,7 +80,7 @@ func IPv4NetworkCreate(ipAddr string) (IPv4Network, error) {
 }
 
 //Check ipAddr is a standard IP addr like 192.168.1.1
-func isValid(ipAddr string) bool { //TODO: validate CIDR
+func isValid(ipAddr string) bool {
 	if !strings.Contains(ipAddr, "-") && !strings.Contains(ipAddr, "*") && !strings.Contains(ipAddr, "/") {
 		re, _ := regexp.Compile(`^(\d){1,3}\.(\d){1,3}\.(\d){1,3}\.(\d){1,3}$`) //default ip regexp
 		if !re.Match([]byte(ipAddr)) {
